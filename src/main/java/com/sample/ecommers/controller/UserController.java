@@ -6,6 +6,7 @@ import com.sample.ecommers.model.User;
 import com.sample.ecommers.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class UserController {
         try {
             User existingUser = userRepository.findByEmail(loginUser.getEmail());
 
-            if (existingUser == null || !existingUser.getPassword().equals(loginUser.getPassword())) {
+            if (existingUser == null || !BCrypt.checkpw(loginUser.getPassword(), existingUser.getPassword())) {
                 throw new UserNotFoundException();
             }
             String token = generateJWTToken(existingUser.getEmail());
@@ -55,6 +56,8 @@ public class UserController {
             if (userRepository.existsByEmail(newUser.getEmail())) {
                 throw new UserAllredyExistException();
             }
+            String hashpw = BCrypt.hashpw(newUser.getPassword(), BCrypt.gensalt());
+            newUser.setPassword(hashpw);
             return userRepository.save(newUser);
         } catch (UserNotFoundException e) {
             throw e;
